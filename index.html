@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8"/>
+	<title>Circular Heat Map Acoustic data</title>
+
+	<!-- D3.js -->	
+    <script src="https://d3js.org/d3.v3.js"></script>
+
+	
+	<!-- jQuery -->
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+
+	<!-- jQuery UI-->
+	<script src="lib/jquery-ui.min.js"></script>
+	
+	<!-- Underscore -->
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
+
+	<!-- Latest compiled and minified CSS -->
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css">
+	
+	<!-- Latest compiled and minified JavaScript -->
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
+	
+	<script src="data.js"></script>
+	<script src="data2.js"></script>
+	
+	<script src="acoustic.js"></script>
+
+	<!-- Roboto & Asar CSS -->
+	<link href='https://fonts.googleapis.com/css?family=Roboto' rel='stylesheet' type='text/css'>
+	<link href="https://fonts.googleapis.com/css?family=Asar" rel="stylesheet">
+	
+	<link href='lib/jquery-ui.min.css' rel='stylesheet' type='text/css'>
+	<link href='lib/jquery-ui.structure.min.css' rel='stylesheet' type='text/css'>
+	<link href='lib/jquery-ui.theme.min.css' rel='stylesheet' type='text/css'>
+	
+	  <style>
+		body {
+		  font-family: 'Asar', serif;
+		  font-size: 14px;
+		  font-weight: 400;
+		  color: #525252;
+		  text-align: center;
+		}
+		
+		html, body { 
+			width:auto; 
+			height:auto; 
+		}
+		.margin30{
+			margin-bottom:30px;
+		}
+		
+		h1,h2,h3,h4,p{
+			font-family: 'Asar', serif;
+		}
+		
+		.axis path,
+		.axis line {
+		  fill: none;
+		  stroke: #000;
+		  shape-rendering: crispEdges;
+		}
+
+		path:hover{
+			/* fill: black; */
+			cursor:pointer;
+		}
+		
+		#chart, #chart2{
+			z-index:1;
+		}
+		.tooltip {
+			font-family: 'Asar', serif;
+			background: #eee;
+			box-shadow: 0 0 5px #999999;
+			color: #333;
+			font-size: 12px;
+			left: 130px;
+			padding: 10px;
+			position: absolute;
+			text-align: center;
+			top: 95px;
+			z-index: 10;
+			display: block;
+			opacity: 0;
+		}
+		
+		label{	
+			padding-top:20px;
+		}
+
+		#time-range{
+			padding-top: 20px;
+		}
+		
+	  </style>
+  </head>
+  <body>
+
+	
+	<div id="cont" class="container-fluid text-center">
+		
+		<div class="row">
+			<div class="col-md-12">
+				<h1> OKEON Churamori Project: <br>Bird call data visualized as a circular heat chart</h1>
+			</div>
+		</div>
+		
+		<div class="row">
+			<div class = "col-md-3">
+			</div>
+			<div class = "col-md-6">	
+				<div>
+					<button type="button" class="btn btn-primary" id="data1">dataset1</button>
+					<button type="button" class="btn btn-primary" id="data2">dataset2</button>
+				</div>	
+				<div id="time-range">
+				    <p>Time Range: <span id="slider-time"></span> to <span id="slider-time2"></span></p>
+				    
+				    <div class="sliders_step1">
+				        <div id="slider-range"></div>
+				    </div>
+				</div>
+				<div id="chart"></div>	
+			</div>
+			<div class = "col-md-3">
+			</div>
+			
+			
+		</div>
+
+		<div class="row">
+			<div class = "col-md-3">
+			</div>
+
+			<div class = "col-md-6">
+				<div id="chart2"></div>		
+			</div>
+			
+			<div class = "col-md-3">
+			</div>
+
+			
+			
+		</div>
+					
+
+		
+		
+		
+	</div>
+
+	<script>
+	
+	
+//PROBLEM: when dec then inc slider again colors are not filled correctly	
+
+// functions to clean data
+// only include data with all 24 hours
+
+// initial chart params for chart 1
+var dataDisplayed = data;
+var radial_labels=[];
+
+getRadialLabels(dataDisplayed);
+
+var segment_labels = ['0:00', '1:00', '2:00', '3:00', '4:00', '5:00', '6:00', '7:00', '8:00', '9:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00', '23:00'];
+var numSegments = segment_labels.length; //number of pieces the circle is divided into, 24 hours in a day
+var range_blue = ["#ffffd9", "#7fcdbb", "#225ea8"];
+var index_one = 0;
+
+//draw first chart
+
+console.log(d3.min(data,function(d){return d.Average;}));
+console.log(d3.max(data,function(d){return d.Average;}));
+
+var chart = d3.acoustic.circularHeat()
+	.domain([0,0.5, 1])
+	.range(range_blue)
+	.radialLabels(radial_labels)
+	.segmentLabels(segment_labels)
+	._index(index_one);
+	
+chart.accessor(function (d) {
+	return d.Average;
+})
+
+d3.select("#chart")
+	 .datum(data)
+	 .call(chart);
+
+//hover effect params
+var innerRadius = chart.innerRadius();
+var numSegments = chart.numSegments();
+var segmentHeight = chart.segmentHeight();
+var offset = chart.offset();
+var svg = d3.select("#chart");
+
+// call mouseover event
+chart.on("customHover", mouseover(svg,index_one,innerRadius,numSegments,segmentHeight,dataDisplayed));
+
+//data update
+$("#data1").click({param: data}, onClick);
+$("#data2").click({param: data2}, onClick);
+
+
+
+// initial chart params for chart 1
+var range_red = ['#fef0d9','#fc8d59','#b30000'];
+var index_two = 1;
+
+// draw second chart
+var chart2 = d3.acoustic.circularHeat()
+	.domain([0, 0.5, 1])
+	.range(range_red)
+	.radialLabels(radial_labels)
+	.segmentLabels(segment_labels)
+	._index(index_two);
+
+chart2.accessor(function (d) {
+	return d.Average;
+})
+
+d3.select("#chart2")
+	 .datum(data)
+	 .call(chart2);
+	
+
+
+//functions
+
+function onClick(passed){
+	dataDisplayed = passed.data.param;
+	radial_labels = []; 
+	getRadialLabels(dataDisplayed);
+	updateChart(dataDisplayed,radial_labels);
+	/* width = chart.width(); */
+	segmentHeight = (500 - 2 * innerRadius) / (2 * radial_labels.length);
+	// should make this dynamic
+	// if I make it dynamic then when the chart updates the graph grows!! but if I put a static number then it's ok, why?
+    offset = innerRadius + Math.ceil(dataDisplayed.length / numSegments) * segmentHeight;
+    index=0;
+    chart.on("customHover", mouseover(svg,index,innerRadius,numSegments,segmentHeight,dataDisplayed));
+
+}
+
+//update radial labels based on data
+function getRadialLabels(displayed){	
+	var groupedData = _.groupBy(displayed, 'Day');
+	//console.log(groupedData);
+	for(var k in groupedData) radial_labels.push(k);
+	//console.log(radial_labels);
+}
+
+//PROBLEM: when chart updates the fill gets messed up, only when the first handle is moved up and the segments that the first handle filters out are misfilled
+// the fill isn't updating for some reason
+
+//update viz
+function updateChart(dataDisplayed,radiallabels){
+	chart.radialLabels(radiallabels).domain([0,0.5, 1])
+	.range(range_blue);
+	//var range_test = chart.range();
+	//console.log('range_test');
+	//console.log(range_test);
+	//why do I need to pass in the range again in order for it to have the correct one?
+	d3.select("#chart").datum(dataDisplayed)
+        .call(chart);
+}
+
+
+//mouseover effect
+function mouseover(svg,index,innerRadius,numSegments,segmentHeight,data){
+		//tooltip
+		var tooltip = svg
+			.append('div')
+			.attr('class', 'tooltip');
+			
+		tooltip.append('div')
+        .attr('class', 'time');
+        tooltip.append('div')
+        .attr('class', 'average');
+        tooltip.append('div')
+        .attr('class', 'day');
+			
+			
+		
+
+    	svg.selectAll("path.segment"+index)
+		.on('mouseover', function (d, i) {
+			// increase the segment height of the one being hovered as well as all others of the same date
+			// while decreasing the height of all others accordingly
+
+				
+				
+				var targetIndex = Math.floor(i / numSegments); //the layer you are hovering
+				var zoomSize = 5; //inner 5px and outer 5px
+				var layerCnt = data.length / numSegments; //layer count, number of layers
+
+				//console.log('data.length');
+				//console.log(data.length);
+				
+				if(data.length < 400){
+					d3.selectAll("path.segment"+index) //.arc indicates segment
+					.transition().duration(200) //transtion effect
+					.attr("d", d3.svg.arc() //set d again
+					.innerRadius(ir)
+					.outerRadius(or)
+					.startAngle(sa)
+					.endAngle(ea));
+				}else{
+					d3.selectAll("path.segment"+index) //.arc indicates segment
+					.transition().duration(0) //transtion effect
+					.attr("d", d3.svg.arc() //set d again
+					.innerRadius(ir)
+					.outerRadius(or)
+					.startAngle(sa)
+					.endAngle(ea));
+					
+				}
+
+
+				function getRadius(floor) {
+					if (floor === 0) { //inner radius doesn't change
+						return innerRadius;
+					}
+					if (floor === layerCnt) { //outer radius doesn't change
+						return innerRadius + layerCnt * segmentHeight;
+					}
+					if (floor <= targetIndex) { //it's math
+						return innerRadius + floor * segmentHeight - zoomSize * (floor / targetIndex);
+					} else { //math again
+						return innerRadius + floor * segmentHeight + zoomSize * ((layerCnt - floor) / (layerCnt - targetIndex));
+					}
+				}
+
+				function ir(d, i) {
+					return getRadius(Math.floor(i / numSegments));
+				}
+
+				function or(d, i) {
+					return getRadius(Math.floor(i / numSegments) + 1);
+				}
+				
+			tooltip.select('.time').html("<b> Time: " + d.Time + "</b>");
+			tooltip.select('.day').html("<b> Date: " + d.Day + "</b>");
+			tooltip.select('.average').html("<b> Value: " + d.Average + "</b>");
+			tooltip.style('display', 'block');
+			tooltip.style('opacity', 2);
+
+		})
+		.on('mousemove', function (d) {
+			tooltip.style('top', (d3.event.layerY + 10) + 'px')
+				.style('left', (d3.event.layerX - 25) + 'px');
+		})
+		.on('mouseout', function (d, i) {
+			
+			tooltip.style('display', 'none');
+			tooltip.style('opacity', 0);
+		
+			var targetIndex = Math.floor(i / numSegments);
+			var zoomSize = 5;
+			var layerCnt = data.length / numSegments;
+
+
+			d3.selectAll("path.segment"+index)
+				.transition().duration(0)
+				.attr("d", d3.svg.arc()
+					.innerRadius(ir)
+					.outerRadius(or)
+					.startAngle(sa)
+					.endAngle(ea))
+
+			function getRadius(floor) {
+				return innerRadius + floor * segmentHeight;
+			}
+
+			function ir(d, i) {
+
+				return getRadius(Math.floor(i / numSegments));
+			}
+
+			function or(d, i) {
+				return getRadius(Math.floor(i / numSegments) + 1);
+			}
+
+		});
+}
+
+
+
+//slider code
+
+var dt_from = "2016-10-22";
+var dt_to = "2017-01-12";
+
+$('#slider-time').html(dt_from);
+$('#slider-time2').html(dt_to);
+var min_val = Date.parse(dt_from)/1000;
+var max_val = Date.parse(dt_to)/1000;
+
+function zeroPad(num, places) {
+  var zero = places - num.toString().length + 1;
+  return Array(+(zero > 0 && zero)).join("0") + num;
+}
+
+function formatDT(__dt) {
+    var year = __dt.getFullYear();
+    var month = zeroPad(__dt.getMonth()+1, 2);
+    var date = zeroPad(__dt.getDate(), 2);
+    return year + '-' + month + '-' + date ;
+};
+
+
+$("#slider-range").slider({
+    range: true,
+    min: min_val,
+    max: max_val,
+    step: 10,
+    values: [min_val, max_val],
+    slide: function (e, ui) {
+        var dt_cur_from = new Date(ui.values[0]*1000); //.format("yyyy-mm-dd hh:ii:ss");
+        $('#slider-time').html(formatDT(dt_cur_from));
+
+        var dt_cur_to = new Date(ui.values[1]*1000); //.format("yyyy-mm-dd hh:ii:ss");                
+        $('#slider-time2').html(formatDT(dt_cur_to));
+    },
+    stop: function(e, ui) { 
+		var html = $('#slider-time').html();
+		console.log(html);	  
+		var html2 = $('#slider-time2').html();
+		console.log(html2);	 
+		filterData(html,html2) 
+    }
+});
+
+var filtered = [];
+
+function filterData(start,end){
+	//--> called by slider drag stop event
+	//<-- calls updateChart
+	filtered = data.filter(function(d){ return d.Day >=  start && d.Day <= end; })
+	//console.log(filtered);
+	//console.log(radial_labels);
+	radial_labels = [];
+	getRadialLabels(filtered);
+	//console.log(radial_labels);
+	updateChart(filtered,radial_labels);
+	dataDisplayed = filtered;
+	segmentHeight = (500 - 2 * innerRadius) / (2 * radial_labels.length);
+	// should make this dynamic
+	// if I make it dynamic then when the chart updates the graph grows!! but if I put a static number then it's ok, why?
+    offset = innerRadius + Math.ceil(dataDisplayed.length / numSegments) * segmentHeight;
+    index=0;
+    chart.on("customHover", mouseover(svg,index,innerRadius,numSegments,segmentHeight,dataDisplayed));
+	
+}
+
+
+
+
+	</script>
+	
+  </body>
+</html>
